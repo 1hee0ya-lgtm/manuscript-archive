@@ -124,7 +124,7 @@ function netBadge() {
 
 function topbar({ back, backLabel = '', title = '', right = '' }) {
   return `<header class="topbar">
-    ${back ? `<a class="back" href="${back}" aria-label="뒤로">‹ <span>${h(backLabel)}</span></a>` : '<span class="brand">원고 보관함</span>'}
+    ${back ? `<a class="back" href="${back}" aria-label="뒤로"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${h(backLabel)}</span></a>` : '<span class="brand">원고 보관함</span>'}
     <div class="topbar-title">${title}</div>
     <div class="topbar-right">${netBadge()}${right}</div></header>`;
 }
@@ -219,10 +219,10 @@ function renderHome() {
       ${!S.worksReady ? '<p class="muted">불러오는 중…</p>' : works.length ? `<ul class="cards">${works.map((w) => `
         <li><a class="card" href="#/w/${w.id}"><strong>${h(w.title || '제목 없음')}</strong>
         ${w.subtitle ? `<span class="muted">${h(w.subtitle)}</span>` : ''}
-        <span class="small muted">마지막 수정 ${relTime(w.updatedAt)}</span></a></li>`).join('')}</ul>`
+        <span class="small muted">${relTime(w.updatedAt)} 수정</span></a></li>`).join('')}</ul>`
         : '<div class="empty"><p>아직 작품이 없어요.</p><p class="muted">기존 원고 모음 html을 가져오거나 새 작품을 만들어 보세요.</p></div>'}
       <div class="row-actions">
-        <button type="button" class="primary" id="newWork">+ 새 작품</button>
+        <button type="button" class="primary" id="newWork"><span class="plus">+</span>새 작품</button>
         <button type="button" id="importHtml">기존 html 가져오기</button>
         <button type="button" id="importJson">백업 파일 불러오기</button>
       </div>
@@ -358,10 +358,10 @@ function renderWork() {
   const row = (c, numbered) => {
     const p = progressHtml(c, w);
     return `<li class="ch-row" data-id="${c.id}">
-      <span class="handle" aria-label="순서 바꾸기" title="끌어서 순서 바꾸기">⋮⋮</span>
+      <span class="handle" aria-label="순서 바꾸기" title="끌어서 순서 바꾸기"><svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></g></svg></span>
       <a class="ch-main" href="#/w/${w.id}/c/${c.id}">
         <span class="ch-title">${numbered ? `<span class="no">${String(chapterNo(c)).padStart(2, '0')}</span>` : ''}${h(c.title || '제목 없음')}</span>
-        <span class="ch-meta">${fmt(p.n.noSpace)}자 <span class="muted">(공백 포함 ${fmt(p.n.withSpace)})</span>${p.target ? ` · ${p.pct}%` : ''} · ${relTime(c.updatedAt)}</span>
+        <span class="ch-meta">${fmt(p.n.noSpace)}자${p.target ? `, 목표의 ${p.pct}%` : ''}<span class="sep"></span>${relTime(c.updatedAt)} 수정</span>
         ${p.target ? `<span class="bar"><span style="width:${p.pct}%"></span></span>` : ''}
       </a>
       ${numbered ? `<select class="status s-${c.status || 'draft'}" data-id="${c.id}" aria-label="상태">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${(c.status || 'draft') === k ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}
@@ -371,17 +371,17 @@ function renderWork() {
     <main class="page">
       <h1 class="page-title">${h(w.title)}</h1>
       ${w.subtitle ? `<p class="muted subtitle">${h(w.subtitle)}</p>` : ''}
-      <p class="stats">회차 ${chs.length}편 · 총 ${fmt(total.n)}자 <span class="muted">(공백 포함 ${fmt(total.w)}자)</span>${w.target ? ` · 회차당 목표 ${fmt(w.target)}자(${w.targetBasis === 'withSpace' ? '공백 포함' : '공백 제외'})` : ''}</p>
+      <p class="stats">회차 <strong>${chs.length}편</strong>, 공백 제외 <strong>${fmt(total.n)}자</strong> (공백 포함 ${fmt(total.w)}자)${w.target ? `<br>회차당 목표 ${fmt(w.target)}자, ${w.targetBasis === 'withSpace' ? '공백 포함' : '공백 제외'} 기준` : ''}</p>
       <div class="row-actions">
-        <button type="button" class="primary" id="newCh">+ 새 회차</button>
+        <button type="button" class="primary" id="newCh"><span class="plus">+</span>새 회차</button>
         <button type="button" id="export">내보내기</button>
         <button type="button" id="merge">html 합치기</button>
       </div>
       <h2 class="section">회차</h2>
       ${!S.chaptersReady ? '<p class="muted">불러오는 중…</p>' : chs.length ? `<ul class="ch-list" id="chList">${chs.map((c) => row(c, true)).join('')}</ul>` : '<p class="muted">아직 회차가 없어요.</p>'}
-      <h2 class="section">부록 <span class="muted small">글자 수 합계와 회차 번호에 들어가지 않아요</span></h2>
+      <h2 class="section">부록 <span class="hint">글자 수 합계와 회차 번호에서 빠져요</span></h2>
       ${aps.length ? `<ul class="ch-list" id="apList">${aps.map((c) => row(c, false)).join('')}</ul>` : '<p class="muted">부록이 없어요.</p>'}
-      <div class="row-actions"><button type="button" id="newAp">+ 새 부록</button>
+      <div class="row-actions"><button type="button" id="newAp"><span class="plus">+</span>새 부록</button>
       <a class="button ghost" href="#/w/${w.id}/trash">휴지통${trash ? ` (${trash})` : ''}</a></div>
     </main>`;
   $app.querySelector('#newCh').onclick = () => newChapter('chapter');
@@ -483,7 +483,7 @@ function renderTrash() {
     <p class="muted small">지운 원고는 여기 보관돼요. 복원하면 목록 맨 뒤로 돌아가요.</p>
     ${items.length ? `<ul class="ch-list">${items.map((c) => `<li class="ch-row" data-id="${c.id}">
       <div class="ch-main"><span class="ch-title">${c.kind === 'appendix' ? '<span class="no">부록</span>' : ''}${h(c.title || '제목 없음')}</span>
-      <span class="ch-meta">${fmt(countChars(c.text).noSpace)}자 · ${dateTime(c.deletedAt)} 삭제</span></div>
+      <span class="ch-meta">${fmt(countChars(c.text).noSpace)}자<span class="sep"></span>${dateTime(c.deletedAt)} 삭제</span></div>
       <button type="button" class="small" data-act="restore">복원</button>
       <button type="button" class="small danger" data-act="purge">영구 삭제</button></li>`).join('')}</ul>` : '<p class="muted">비어 있어요.</p>'}
     </main>`;
@@ -700,7 +700,7 @@ function updateCounts() {
   const pct = target ? Math.min(100, Math.round((n[basis] / target) * 100)) : 0;
   const live = document.getElementById('liveCount');
   if (live) live.textContent = fmt(n.noSpace) + '자' + (target ? ` · ${pct}%` : '');
-  $app.querySelector('#counts').innerHTML = `공백 제외 <b>${fmt(n.noSpace)}</b> · 포함 <b>${fmt(n.withSpace)}</b>${target ? ` · 목표 ${fmt(target)}의 ${pct}%` : ''}`;
+  $app.querySelector('#counts').innerHTML = `공백 제외 <b>${fmt(n.noSpace)}</b><span class="sep"></span>공백 포함 <b>${fmt(n.withSpace)}</b>${target ? `<span class="sep"></span>목표 ${fmt(target)}자의 ${pct}%` : ''}`;
   const bar = $app.querySelector('#bar');
   bar.hidden = !target;
   if (target) bar.firstElementChild.style.width = pct + '%';

@@ -1,5 +1,5 @@
 // 앱 화면(코드) 파일을 기기에 보관해서 인터넷이 없어도 열리게 한다. 원고 데이터는 Firebase가 따로 보관한다.
-const CACHE = 'shell-mura26v8';
+const CACHE = 'shell-murabbxp';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png'])).then(() => self.skipWaiting()));
 });
