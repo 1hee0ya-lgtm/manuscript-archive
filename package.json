@@ -1,0 +1,21 @@
+{
+  "name": "manuscript-archive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:mock": "node build.mjs --mock"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "diff": "^9.0.0",
+    "docx": "^9.8.1",
+    "esbuild": "^0.28.2",
+    "firebase": "^12.19.0",
+    "sortablejs": "^1.15.7"
+  },
+  "private": true
+}
