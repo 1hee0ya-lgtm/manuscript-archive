@@ -100,9 +100,13 @@ function showError(what, e) {
 
 async function addWithProgress(wid, rows) {
   const b = busy(`원고 ${rows.length}개를 저장하는 중… (0/${rows.length})`);
+  let last = Date.now();
+  const watch = setInterval(() => {
+    if (Date.now() - last > 20000) b.set('서버에서 응답이 없어요. 인터넷 연결과 Firebase의 Firestore 데이터베이스가 있는지 확인해 주세요. (계속 기다리는 중)');
+  }, 2000);
   try {
-    await store.addChapters(wid, rows, (done, total) => b.set(`원고 ${total}개를 저장하는 중… (${done}/${total})`));
-  } finally { b.done(); }
+    await store.addChapters(wid, rows, (done, total) => { last = Date.now(); b.set(`원고 ${total}개를 저장하는 중… (${done}/${total})`); });
+  } finally { clearInterval(watch); b.done(); }
 }
 
 function pickFile(accept) {
