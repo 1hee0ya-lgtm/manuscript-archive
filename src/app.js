@@ -80,6 +80,31 @@ function confirmBox(title, body, okLabel = '확인', danger = false) {
   return modal({ title, body: `<p>${body}</p>`, buttons: [{ label: '취소', value: false }, { label: okLabel, value: true, primary: !danger, danger }] });
 }
 
+function busy(msg) {
+  const el = document.createElement('div');
+  el.className = 'modal-wrap busy';
+  el.innerHTML = `<div class="modal"><p class="busy-msg">${h(msg)}</p><p class="muted small">창을 닫거나 다른 화면으로 가지 말고 기다려 주세요.</p></div>`;
+  document.body.append(el);
+  return { set: (m) => { el.querySelector('.busy-msg').textContent = m; }, done: () => el.remove() };
+}
+
+function showError(what, e) {
+  console.error(e);
+  const code = (e && (e.code || e.name)) || '';
+  const msg = (e && e.message) || String(e);
+  let hint = '';
+  if (code.includes('permission-denied')) hint = 'Firestore 보안 규칙이나 로그인한 계정을 확인해 주세요.';
+  else if (code.includes('unavailable') || code.includes('network')) hint = '인터넷 연결을 확인하고 다시 시도해 주세요.';
+  return modal({ title: what + ' 실패', body: `<p>${h(hint || '아래 오류 내용을 캡처해서 알려주세요.')}</p><pre class="err-box">${h(code)}\n${h(msg)}</pre>` });
+}
+
+async function addWithProgress(wid, rows) {
+  const b = busy(`원고 ${rows.length}개를 저장하는 중… (0/${rows.length})`);
+  try {
+    await store.addChapters(wid, rows, (done, total) => b.set(`원고 ${total}개를 저장하는 중… (${done}/${total})`));
+  } finally { b.done(); }
+}
+
 function pickFile(accept) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -239,7 +264,7 @@ async function importHtml(intoWid) {
     let base = Math.max(0, ...S.chapters.map((c) => c.order ?? 0)) + 10;
     const rows = [...newCh.map((c) => ({ kind: 'chapter', ...c })), ...newAp.map((c) => ({ kind: 'appendix', ...c }))]
       .map((c, i) => ({ kind: c.kind, title: c.title, text: c.text, status: 'draft', order: base + i * 10, device: DEVICE }));
-    await store.addChapters(intoWid, rows);
+    try { await addWithProgress(intoWid, rows); } catch (e) { return showError('원고 추가', e); }
     toast(`${rows.length}개를 추가했어요.`);
     return;
   }
@@ -261,12 +286,13 @@ async function importHtml(intoWid) {
     await waitChapters();
     return importHtmlParsed(same.id, parsed);
   }
-  const wid = await store.createWork({ title: pw.title, subtitle: pw.subtitle, target: null, targetBasis: 'noSpace', order: Date.now() });
+  let wid;
+  try { wid = await store.createWork({ title: pw.title, subtitle: pw.subtitle, target: null, targetBasis: 'noSpace', order: Date.now() }); } catch (e) { return showError('작품 만들기', e); }
   const rows = [
     ...chapters.map((c, i) => ({ kind: 'chapter', title: c.title, text: c.text, status: 'draft', order: (i + 1) * 10, device: DEVICE })),
     ...appendices.map((c, i) => ({ kind: 'appendix', title: c.title, text: c.text, status: 'draft', order: 100000 + i * 10, device: DEVICE })),
   ];
-  await store.addChapters(wid, rows);
+  try { await addWithProgress(wid, rows); } catch (e) { location.hash = '#/w/' + wid; return showError('원고 가져오기', e); }
   location.hash = '#/w/' + wid;
   toast(`회차 ${chapters.length}편과 부록 ${appendices.length}개를 가져왔어요.`);
 }
@@ -278,7 +304,7 @@ async function importHtmlParsed(wid, parsed) {
   if (!rows0.length) return toast('새로 추가할 원고가 없어요. (제목 기준)');
   const base = Math.max(0, ...S.chapters.map((c) => c.order ?? 0)) + 10;
   const rows = rows0.map((c, i) => ({ kind: c.kind, title: c.title, text: c.text, status: 'draft', order: base + i * 10, device: DEVICE }));
-  await store.addChapters(wid, rows);
+  try { await addWithProgress(wid, rows); } catch (e) { return showError('원고 추가', e); }
   toast(`${rows.length}개를 추가했어요.`);
 }
 
@@ -296,7 +322,7 @@ async function importJson() {
   const ok = await confirmBox('백업 불러오기', `<strong>${h(w.title)}</strong> (원고 ${n}개)를 새 작품으로 불러올까요?<br><span class="muted small">기존 작품은 바뀌지 않아요.</span>`, '불러오기');
   if (!ok) return;
   const wid = await store.createWork({ title: w.title, subtitle: w.subtitle || '', target: w.target ?? null, targetBasis: w.targetBasis || 'noSpace', order: Date.now() });
-  await store.addChapters(wid, w.chapters.filter((c) => !c.deleted).map((c, i) => ({
+  await addWithProgress(wid, w.chapters.filter((c) => !c.deleted).map((c, i) => ({
     kind: c.kind === 'appendix' ? 'appendix' : 'chapter', title: c.title || '', text: c.text || '',
     status: STATUS[c.status] ? c.status : 'draft', order: c.order ?? i * 10, device: DEVICE,
   })));
@@ -819,6 +845,7 @@ async function showVersion(wid, cid, v) {
 
 // ───────── 시작 ─────────
 window.addEventListener('hashchange', route);
+window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); toast('오류: ' + ((e.reason && (e.reason.code || e.reason.message)) || e.reason), true); });
 window.addEventListener('online', () => { updateSaveState(); refreshNet(); });
 window.addEventListener('offline', () => { updateSaveState(); refreshNet(); });
 function refreshNet() {

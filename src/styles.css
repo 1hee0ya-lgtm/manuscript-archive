@@ -165,3 +165,7 @@ del { background: #f8dcd6; color: #8d2b1c; }
 #conflict { position: sticky; top: 60px; z-index: 5; }
 .live-count { font-size: 13px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gap { display: inline-block; color: #b9a6af; background: #f3eef0; border-radius: 4px; padding: 0 6px; margin: 4px 0; font-family: var(--sans); font-size: 12px; }
+
+.err-box { white-space: pre-wrap; word-break: break-all; background: #fdf0ea; border: 1px solid #ecc3b4; border-radius: 8px; padding: 10px; font-size: 12.5px; }
+.busy .modal { text-align: center; }
+.busy-msg { font-weight: 600; }

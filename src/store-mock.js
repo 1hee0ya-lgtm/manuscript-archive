@@ -57,7 +57,8 @@ export const store = {
   },
   async deleteChapterForever(wid, cid) { commit((d) => { delete d.chapters[wid][cid]; delete d.versions[wid + '/' + cid]; }); },
   async setOrders(wid, items) { commit((d) => { for (const it of items) d.chapters[wid][it.id].order = it.order; }); },
-  async addChapters(wid, chapters) {
+  async addChapters(wid, chapters, onProgress) {
+    if (onProgress) onProgress(chapters.length, chapters.length);
     const t = Date.now();
     const rows = chapters.map((ch) => ({ id: rid(), ch, vid: rid() }));
     commit((d) => {

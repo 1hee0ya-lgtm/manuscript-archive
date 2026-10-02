@@ -101,21 +101,21 @@ export const store = {
   },
 
   // 여러 회차를 한 번에 추가 (가져오기용). 각 회차에 '가져오기' 버전도 남긴다.
-  async addChapters(wid, chapters) {
-    let batch = writeBatch(db); let n = 0;
-    const commits = [];
-    for (const ch of chapters) {
-      const ref = doc(chaptersCol(wid));
-      batch.set(ref, { ...ch, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-      batch.set(doc(versionsCol(wid, ref.id)), {
-        title: ch.title, text: ch.text, reason: 'import', device: ch.device || '', createdAt: serverTimestamp(),
-      });
-      n += 2;
-      if (n >= 400) { commits.push(batch.commit()); batch = writeBatch(db); n = 0; }
+  async addChapters(wid, chapters, onProgress) {
+    const SIZE = 8;
+    for (let i = 0; i < chapters.length; i += SIZE) {
+      const batch = writeBatch(db);
+      for (const ch of chapters.slice(i, i + SIZE)) {
+        const ref = doc(chaptersCol(wid));
+        batch.set(ref, { ...ch, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        batch.set(doc(versionsCol(wid, ref.id)), {
+          title: ch.title, text: ch.text, reason: 'import', device: ch.device || '', createdAt: serverTimestamp(),
+        });
+      }
+      await quiet(batch.commit());
+      if (onProgress) onProgress(Math.min(chapters.length, i + SIZE), chapters.length);
     }
-    if (n) commits.push(batch.commit());
     touchWork(wid);
-    await quiet(Promise.all(commits));
   },
 
   async listVersions(wid, cid) {
