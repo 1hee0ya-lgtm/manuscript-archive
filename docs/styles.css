@@ -150,14 +150,39 @@ select.status.s-done { color: var(--ok); background-image: radial-gradient(circl
 .ed-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .counts { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .counts b { color: var(--ink-2); font-weight: 600; }
-.body-input {
-  display: block; width: 100%; min-height: 60vh; resize: none; overflow: hidden;
-  font: 18px/2 var(--serif); letter-spacing: -0.005em; color: var(--ink); caret-color: var(--accent);
-  background: transparent; border: 0; padding: 0; outline: none;
+.body-input { font: 18px/2 var(--serif); letter-spacing: -0.005em; color: var(--ink); min-height: 60vh; }
+.pm { outline: none; min-height: 60vh; caret-color: var(--accent); white-space: pre-wrap; word-wrap: break-word; position: relative; }
+.pm p { margin: 0 0 1.15em; }
+.pm.is-empty::before { content: attr(data-placeholder); position: absolute; left: 0; top: 0; color: #b9babe; font: 15px/2.2 var(--sans); pointer-events: none; }
+.pm .scene-break { margin: 2.2em 0 !important; }
+
+/* 말풍선: 메신저처럼 상대는 왼쪽 회색, 나는 오른쪽 파랑 */
+.bubble {
+  width: fit-content; max-width: 78%; min-width: 2.6em; min-height: 1.6em; margin: 0 0 6px;
+  padding: 9px 15px; border-radius: 20px; font: 15.5px/1.6 var(--sans); letter-spacing: -0.01em;
+  white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere;
 }
-.body-input::placeholder { color: #b9babe; font-family: var(--sans); font-size: 15px; }
+.bubble.other { background: #efeff1; color: var(--ink); border-bottom-left-radius: 6px; }
+.bubble.me { margin-left: auto; background: #3478f6; color: #fff; border-bottom-right-radius: 6px; caret-color: #fff; }
+.bubble.me::selection, .bubble.me *::selection { background: rgba(255, 255, 255, .35); }
+p + .bubble, .scene-break + .bubble { margin-top: -0.3em; }
+.bubble + p, .bubble + .scene-break { margin-top: 1.15em; }
+
+/* 서식 도구 */
+.ed-tools {
+  position: sticky; top: calc(57px + env(safe-area-inset-top)); z-index: 4;
+  display: flex; gap: 6px; padding: 8px 0 10px; margin: -8px 0 18px; background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.tool { height: 32px; padding: 0 12px 0 10px; font-size: 13px; background: transparent; color: var(--ink-2); gap: 7px; }
+.tool:hover { background: var(--surface); }
+.tool.on { background: var(--accent-soft); color: var(--accent-ink); }
+.tool-icon { width: 16px; height: 12px; border-radius: 7px; display: inline-block; }
+.tool-icon.other { background: #d9d9de; border-bottom-left-radius: 2px; }
+.tool-icon.me { background: #3478f6; border-bottom-right-radius: 2px; }
 .reader { font: 18px/2 var(--serif); color: var(--ink); }
 .reader p { margin: 0 0 1.15em; }
+.diff .bubble, .reader .bubble { font-size: 14.5px; }
 .scene-break { text-align: center; letter-spacing: .5em; color: #b9babe; margin: 2.2em 0 !important; }
 .ed-nav { display: flex; justify-content: space-between; gap: 16px; margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; }
 .ed-nav a { text-decoration: none; color: var(--ink-2); max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 6px 0; }
@@ -257,6 +282,8 @@ del { background: #fbe3de; color: #a3321f; border-radius: 3px; }
   .editor-page { padding: 24px 20px 140px; }
   .ed-head input.title-input { font-size: 23px; }
   .body-input, .reader { font-size: 17px; line-height: 1.95; }
+  .bubble { font-size: 15px; max-width: 84%; }
+  .ed-tools { top: calc(57px + env(safe-area-inset-top)); }
   .row-actions button { flex: 0 0 auto; }
 }
 
