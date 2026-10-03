@@ -2,8 +2,9 @@ import Sortable from 'sortablejs';
 import { diffWordsWithSpace } from 'diff';
 import { store } from 'store';
 import {
-  countChars, fmt, escapeHtml as h, renderParagraphs, parseLegacyHtml, relTime, dateTime,
+  countChars, fmt, escapeHtml as h, renderParagraphs, parseLegacyHtml, relTime, dateTime, normalizeText,
 } from './text.js';
+import { createBodyEditor } from './editor.js';
 import { exportTxt, exportDocx, exportBackup, parseBackup } from './export.js';
 
 // ───────── 기본 상태 ─────────
@@ -528,16 +529,34 @@ function openEditor(wid, cid) {
         <span id="counts" class="counts"></span></div>
         <span class="bar" id="bar" hidden><span></span></span>
       </div>
-      <textarea id="body" class="body-input" spellcheck="false" placeholder="본문을 입력하세요.&#10;&#10;빈 줄로 문단을 나누고, 장면 구분은 * * * 로 입력해요." aria-label="본문"></textarea>
+      <div class="ed-tools" id="edTools" role="toolbar" aria-label="서식">
+        <button type="button" class="tool" data-bubble="other" title="상대 말풍선 (회색, 왼쪽)"><span class="tool-icon other"></span>상대 말풍선</button>
+        <button type="button" class="tool" data-bubble="me" title="내 말풍선 (파랑, 오른쪽)"><span class="tool-icon me"></span>내 말풍선</button>
+      </div>
+      <div id="body" class="body-input"></div>
       <article id="reader" class="reader" hidden></article>
       <nav class="ed-nav" id="edNav"></nav>
     </main>`;
   const title = $app.querySelector('#title');
-  const body = $app.querySelector('#body');
+  const tools = $app.querySelector('#edTools');
+  const body = createBodyEditor($app.querySelector('#body'), {
+    onChange: onEdit,
+    onSelection: () => {
+      const k = body.currentKind();
+      tools.querySelectorAll('[data-bubble]').forEach((b) => b.classList.toggle('on', b.dataset.bubble === k));
+    },
+    placeholder: '본문을 입력하세요. Enter로 문단을 나누고, 장면 구분은 * * * 로 입력해요.',
+  });
   E.title = title; E.body = body;
   title.disabled = body.disabled = true;
   title.addEventListener('input', onEdit);
-  body.addEventListener('input', () => { autoGrow(); onEdit(); });
+  // 버튼을 눌러도 본문 커서가 그대로 있도록 포커스를 뺏지 않는다
+  tools.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-bubble]')) e.preventDefault(); });
+  tools.addEventListener('mousedown', (e) => { if (e.target.closest('[data-bubble]')) e.preventDefault(); });
+  tools.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-bubble]');
+    if (b && !E.reading && E.base) body.toggleBubble(b.dataset.bubble);
+  });
   title.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); body.focus(); } });
   $app.querySelector('#status').onchange = (e) => store.updateChapter(wid, cid, { status: e.target.value });
   $app.querySelector('#menu').onclick = editorMenu;
@@ -545,14 +564,7 @@ function openEditor(wid, cid) {
   updateEditorNav();
 }
 
-function autoGrow() {
-  const b = S.editor?.body;
-  if (!b || b.hidden) return;
-  const y = window.scrollY;
-  b.style.height = 'auto';
-  b.style.height = b.scrollHeight + 'px';
-  window.scrollTo(0, y);
-}
+function autoGrow() { /* 편집기가 내용에 맞춰 자동으로 늘어남 */ }
 
 const current = () => ({ title: S.editor.title.value, text: S.editor.body.value });
 const isDirty = () => { const E = S.editor; if (!E || !E.base) return false; const c = current(); return c.title !== E.base.title || c.text !== E.base.text; };
@@ -569,13 +581,13 @@ function onDoc(d, meta) {
   $app.querySelector('#status').value = d.status || 'draft';
   $app.querySelector('#status').hidden = d.kind === 'appendix';
   if (!E.base) {
-    E.base = { title: d.title || '', text: d.text || '' };
+    E.base = { title: d.title || '', text: normalizeText(d.text || '') };
     E.lastVersionText = null;
     setFields(E.base);
     E.title.disabled = E.body.disabled = false;
     if (S.focusTitle) { S.focusTitle = false; E.title.focus(); E.title.select(); }
   } else {
-    const remote = { title: d.title || '', text: d.text || '' };
+    const remote = { title: d.title || '', text: normalizeText(d.text || '') };
     const differs = remote.title !== E.base.title || remote.text !== E.base.text;
     if (differs && d.device !== DEVICE && !meta.pending) {
       if (!isDirty() && !E.timer) applyRemote(remote, true);
@@ -588,11 +600,7 @@ function onDoc(d, meta) {
 
 function setFields({ title, text }) {
   const E = S.editor;
-  const focused = document.activeElement === E.body;
-  const pos = E.body.selectionStart;
   E.title.value = title; E.body.value = text;
-  if (focused) { const p = Math.min(pos, text.length); E.body.setSelectionRange(p, p); }
-  autoGrow();
   if (E.reading) $app.querySelector('#reader').innerHTML = renderParagraphs(text);
   updateCounts();
 }
@@ -755,6 +763,7 @@ async function editorMenu() {
     E.reading = !E.reading;
     const r = $app.querySelector('#reader');
     r.hidden = !E.reading; E.body.hidden = E.reading; E.title.readOnly = E.reading;
+    $app.querySelector('#edTools').hidden = E.reading;
     if (E.reading) r.innerHTML = renderParagraphs(E.body.value); else autoGrow();
   } else if (v === 'history') {
     location.hash = `#/w/${E.wid}/c/${E.cid}/h`;

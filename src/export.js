@@ -1,5 +1,5 @@
 // 내보내기: txt, docx, 백업(JSON)
-import { blocks } from './text.js';
+import { blocks, stripMarkers } from './text.js';
 
 export function download(filename, blob) {
   const url = URL.createObjectURL(blob);
@@ -15,12 +15,12 @@ const safeName = (s) => (s || '원고').replace(/[\\/:*?"<>|]/g, '').trim().slic
 export function exportTxt(name, items, header) {
   const parts = [];
   if (header) parts.push(header);
-  for (const it of items) parts.push(it.heading, it.text.replace(/\r\n?/g, '\n').trim());
+  for (const it of items) parts.push(it.heading, stripMarkers(it.text).trim());
   download(safeName(name) + '.txt', new Blob([parts.join('\n\n\n').replace(/\n{4,}/g, '\n\n\n') + '\n'], { type: 'text/plain;charset=utf-8' }));
 }
 
 export async function exportDocx(name, items, header) {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType } = await import('docx');
   const children = [];
   if (header) {
     children.push(new Paragraph({ heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, children: [new TextRun(header)] }));
@@ -33,7 +33,16 @@ export async function exportDocx(name, items, header) {
       children: [new TextRun(it.heading)],
     }));
     for (const b of blocks(it.text)) {
-      if (b.scene) {
+      if (b.bubble) {
+        const me = b.bubble === 'me';
+        children.push(new Paragraph({
+          alignment: me ? AlignmentType.RIGHT : AlignmentType.LEFT,
+          indent: me ? { left: 2880 } : { right: 2880 },
+          spacing: { after: 120, line: 320 },
+          shading: { type: ShadingType.CLEAR, color: 'auto', fill: me ? '3478F6' : 'EFEFF1' },
+          children: b.lines.map((line, j) => new TextRun(j ? { text: line, break: 1, color: me ? 'FFFFFF' : '26272B' } : { text: line, color: me ? 'FFFFFF' : '26272B' })),
+        }));
+      } else if (b.scene) {
         children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 240, after: 240 }, children: [new TextRun('* * *')] }));
       } else {
         children.push(new Paragraph({

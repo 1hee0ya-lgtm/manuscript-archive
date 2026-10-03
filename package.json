@@ -15,7 +15,13 @@
     "docx": "^9.8.1",
     "esbuild": "^0.28.2",
     "firebase": "^12.19.0",
-    "sortablejs": "^1.15.7"
+    "sortablejs": "^1.15.7",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-view": "1.42.6",
+    "prosemirror-model": "1.25.12",
+    "prosemirror-history": "1.5.1",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-commands": "1.7.2"
   },
   "private": true
 }

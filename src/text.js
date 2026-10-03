@@ -1,7 +1,7 @@
 // 글자 수, 본문 렌더링, 기존 html 해석 등 텍스트 관련 도우미
 
 export function countChars(text) {
-  const t = (text || '').replace(/\r\n?/g, '\n');
+  const t = stripMarkers(text);
   const withSpace = [...t.replace(/\n/g, '')].length;
   const noSpace = [...t.replace(/\s/g, '')].length;
   return { withSpace, noSpace };
@@ -14,18 +14,40 @@ export function escapeHtml(s) {
 }
 
 const SCENE = /^\s*(\*|\*\*\*|\*\s+\*\s+\*)\s*$/;
+export const isSceneBreak = (t) => SCENE.test(t);
+// 말풍선 표시: 문단 첫머리 "<< " = 상대(회색, 왼쪽), ">> " = 나(파랑, 오른쪽)
+const BUBBLE = /^(<<|>>) ?/;
+export const MARK = { other: '<< ', me: '>> ' };
 
 // 빈 줄 = 문단, 줄바꿈 = 줄, * * * = 장면 구분 (기존 html과 같은 규칙)
 export function blocks(text) {
   return (text || '').replace(/\r\n?/g, '\n').split(/\n\s*\n/)
     .filter((b) => b.trim())
-    .map((b) => (SCENE.test(b) ? { scene: true } : { lines: b.split('\n') }));
+    .map((b) => {
+      if (SCENE.test(b)) return { scene: true, lines: [b] };
+      const m = b.match(BUBBLE);
+      if (m) return { bubble: m[1] === '>>' ? 'me' : 'other', lines: b.slice(m[0].length).split('\n') };
+      return { lines: b.split('\n') };
+    });
 }
 
+export function joinBlocks(list) {
+  return list.map((b) => (b.bubble ? MARK[b.bubble] : '') + b.lines.join('\n'))
+    .filter((t) => t.trim()).join('\n\n');
+}
+
+// 편집기가 저장하는 모양과 똑같이 맞춘 글 (비교용)
+export const normalizeText = (text) => joinBlocks(blocks(text));
+
+// 표시 없이 글만 (글자 수, txt 내보내기용)
+export const stripMarkers = (text) => blocks(text).map((b) => b.lines.join('\n')).join('\n\n');
+
 export function renderParagraphs(text) {
-  return blocks(text).map((b) => (b.scene
-    ? '<p class="scene-break">* * *</p>'
-    : '<p>' + b.lines.map(escapeHtml).join('<br>') + '</p>')).join('');
+  return blocks(text).map((b) => {
+    if (b.scene) return '<p class="scene-break">* * *</p>';
+    const inner = b.lines.map(escapeHtml).join('<br>');
+    return b.bubble ? `<div class="bubble ${b.bubble}">${inner}</div>` : `<p>${inner}</p>`;
+  }).join('');
 }
 
 // ── 기존 '원고 모음' html 해석 ──
