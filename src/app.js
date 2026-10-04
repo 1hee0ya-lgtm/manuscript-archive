@@ -530,8 +530,20 @@ function openEditor(wid, cid) {
         <span class="bar" id="bar" hidden><span></span></span>
       </div>
       <div class="ed-tools" id="edTools" role="toolbar" aria-label="서식">
-        <button type="button" class="tool" data-bubble="other" title="상대 말풍선 (회색, 왼쪽)"><span class="tool-icon other"></span>상대 말풍선</button>
-        <button type="button" class="tool" data-bubble="me" title="내 말풍선 (파랑, 오른쪽)"><span class="tool-icon me"></span>내 말풍선</button>
+        <button type="button" class="tool" data-bubble="other" title="상대 말풍선 (회색, 왼쪽)"><span class="tool-icon other"></span><span class="l-long">상대 말풍선</span><span class="l-short">상대</span></button>
+        <button type="button" class="tool" data-bubble="me" title="내 말풍선 (파랑, 오른쪽)"><span class="tool-icon me"></span><span class="l-long">내 말풍선</span><span class="l-short">나</span></button>
+        <span class="tool-sep"></span>
+        <button type="button" class="tool" data-list="bullet" title="글머리표 목록"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="4" r="1.5"/><circle cx="3" cy="8" r="1.5"/><circle cx="3" cy="12" r="1.5"/><rect x="6.5" y="3.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="7.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="11.2" width="8" height="1.6" rx=".8"/></g></svg>목록</button>
+        <button type="button" class="tool" data-list="ordered" title="번호 목록"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><text x="0.5" y="6" font-size="5.5" font-family="sans-serif" font-weight="700">1</text><text x="0.5" y="13.5" font-size="5.5" font-family="sans-serif" font-weight="700">2</text><rect x="6.5" y="3.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="10.7" width="8" height="1.6" rx=".8"/></g></svg>번호</button>
+        <button type="button" class="tool" data-table="insert" title="표 넣기"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M1.5 6.2h13M6 2.5v11M10.5 2.5v11"/></g></svg>표</button>
+      </div>
+      <div class="ed-tools table-tools" id="tableTools" hidden role="toolbar" aria-label="표 편집">
+        <span class="tt-label">표</span>
+        <button type="button" class="tool" data-tcmd="addRow">줄 추가</button>
+        <button type="button" class="tool" data-tcmd="delRow">줄 삭제</button>
+        <button type="button" class="tool" data-tcmd="addCol">칸 추가</button>
+        <button type="button" class="tool" data-tcmd="delCol">칸 삭제</button>
+        <button type="button" class="tool danger" data-tcmd="delTable">표 지우기</button>
       </div>
       <div id="body" class="body-input"></div>
       <article id="reader" class="reader" hidden></article>
@@ -539,11 +551,15 @@ function openEditor(wid, cid) {
     </main>`;
   const title = $app.querySelector('#title');
   const tools = $app.querySelector('#edTools');
+  const tableTools = $app.querySelector('#tableTools');
   const body = createBodyEditor($app.querySelector('#body'), {
     onChange: onEdit,
     onSelection: () => {
       const k = body.currentKind();
       tools.querySelectorAll('[data-bubble]').forEach((b) => b.classList.toggle('on', b.dataset.bubble === k));
+      tools.querySelectorAll('[data-list]').forEach((b) => b.classList.toggle('on', b.dataset.list === k));
+      tools.querySelector('[data-table]').classList.toggle('on', k === 'table');
+      tableTools.hidden = k !== 'table' || !!E.reading;
     },
     placeholder: '본문을 입력하세요. Enter로 문단을 나누고, 장면 구분은 * * * 로 입력해요.',
   });
@@ -551,11 +567,38 @@ function openEditor(wid, cid) {
   title.disabled = body.disabled = true;
   title.addEventListener('input', onEdit);
   // 버튼을 눌러도 본문 커서가 그대로 있도록 포커스를 뺏지 않는다
-  tools.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-bubble]')) e.preventDefault(); });
-  tools.addEventListener('mousedown', (e) => { if (e.target.closest('[data-bubble]')) e.preventDefault(); });
-  tools.addEventListener('click', (e) => {
+  for (const bar of [tools, tableTools]) {
+    bar.addEventListener('pointerdown', (e) => { if (e.target.closest('.tool')) e.preventDefault(); });
+    bar.addEventListener('mousedown', (e) => { if (e.target.closest('.tool')) e.preventDefault(); });
+  }
+  tools.addEventListener('click', async (e) => {
+    if (E.reading || !E.base) return;
     const b = e.target.closest('[data-bubble]');
-    if (b && !E.reading && E.base) body.toggleBubble(b.dataset.bubble);
+    if (b) return body.toggleBubble(b.dataset.bubble);
+    const l = e.target.closest('[data-list]');
+    if (l) return body.toggleList(l.dataset.list);
+    if (e.target.closest('[data-table]')) {
+      if (body.currentKind() === 'table') return toast('표 안에는 표를 넣을 수 없어요.');
+      const size = await modal({
+        title: '표 넣기',
+        body: `<p class="muted small">첫 줄은 제목줄(굵게)이 돼요. 줄과 칸은 나중에 더하거나 뺄 수 있어요.</p>
+          <div class="size-row"><label>줄 수 (제목줄 포함)<input type="number" id="tr" inputmode="numeric" min="2" max="30" value="3"></label>
+          <label>칸 수<input type="number" id="tc" inputmode="numeric" min="2" max="8" value="3"></label></div>`,
+        buttons: [{ label: '취소', value: null }, {
+          label: '넣기', primary: true,
+          value: (m) => ({ r: Number(m.querySelector('#tr').value), c: Number(m.querySelector('#tc').value) }),
+        }],
+      });
+      if (size) body.insertTable(Math.min(30, Math.max(2, size.r || 3)), Math.min(8, Math.max(2, size.c || 3)));
+      else body.focus();
+    }
+  });
+  tableTools.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tcmd]');
+    if (!b) return;
+    const r = body.tableCommand(b.dataset.tcmd);
+    if (r === 'min-cols') toast('표는 칸이 2개 이상이어야 해요.');
+    if (r === 'min-rows') toast('마지막 줄은 지울 수 없어요. 표 지우기를 써 주세요.');
   });
   title.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); body.focus(); } });
   $app.querySelector('#status').onchange = (e) => store.updateChapter(wid, cid, { status: e.target.value });
@@ -764,6 +807,7 @@ async function editorMenu() {
     const r = $app.querySelector('#reader');
     r.hidden = !E.reading; E.body.hidden = E.reading; E.title.readOnly = E.reading;
     $app.querySelector('#edTools').hidden = E.reading;
+    $app.querySelector('#tableTools').hidden = true;
     if (E.reading) r.innerHTML = renderParagraphs(E.body.value); else autoGrow();
   } else if (v === 'history') {
     location.hash = `#/w/${E.wid}/c/${E.cid}/h`;

@@ -288,3 +288,40 @@ del { background: #fbe3de; color: #a3321f; border-radius: 3px; }
 }
 
 .sep { display: inline-block; width: 1px; height: 10px; background: #d6d7da; margin: 0 8px; vertical-align: -1px; }
+
+/* 목록·표 */
+.tool-sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; flex-shrink: 0; align-self: center; }
+.ed-tools { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+.ed-tools::-webkit-scrollbar { display: none; }
+.tool { flex-shrink: 0; }
+.tool svg { flex-shrink: 0; }
+.table-tools { top: calc(57px + 51px + env(safe-area-inset-top)); margin-top: -18px; align-items: center; border-bottom-color: transparent; }
+.tt-label { font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 4px 0 2px; flex-shrink: 0; }
+.tool.danger { color: var(--warn); }
+.size-row { display: flex; gap: 12px; }
+.size-row label { flex: 1; }
+
+.pm ul, .pm ol, .reader ul, .reader ol { margin: 0 0 1.15em; padding-left: 1.4em; }
+.pm li, .reader li { margin: 0 0 .25em; padding-left: .2em; }
+.pm li p, .reader li p { margin: 0; }
+.pm ul li::marker, .reader ul li::marker { color: var(--muted); }
+.pm ol li::marker, .reader ol li::marker { color: var(--muted); font-family: var(--sans); font-size: .9em; font-variant-numeric: tabular-nums; }
+
+.table-wrap { overflow-x: auto; margin: 0 0 1.4em; -webkit-overflow-scrolling: touch; }
+.pm table, .reader table { border-collapse: collapse; width: 100%; min-width: 100%; table-layout: fixed; font: 15px/1.6 var(--sans); }
+.pm th, .pm td, .reader th, .reader td { border: 1px solid #e3e3e0; padding: 8px 10px; vertical-align: top; min-width: 5em; position: relative; text-align: left; }
+.pm th, .reader th { background: var(--surface); font-weight: 600; }
+.pm th p, .pm td p, .reader th p, .reader td p { margin: 0; min-height: 1.6em; }
+.pm .selectedCell::after { content: ''; position: absolute; inset: 0; background: rgba(52, 81, 224, .10); pointer-events: none; }
+@media (max-width: 520px) {
+  .pm table, .reader table { table-layout: auto; font-size: 14px; }
+  .pm th, .pm td, .reader th, .reader td { min-width: 4.5em; padding: 7px 8px; }
+  .table-tools { top: calc(57px + 51px + env(safe-area-inset-top)); }
+}
+
+.l-short { display: none; }
+@media (max-width: 520px) {
+  .l-long { display: none; }
+  .l-short { display: inline; }
+  .ed-tools .tool { padding: 0 9px; gap: 5px; }
+}

@@ -1,5 +1,5 @@
 // 내보내기: txt, docx, 백업(JSON)
-import { blocks, stripMarkers } from './text.js';
+import { blocks, plainText } from './text.js';
 
 export function download(filename, blob) {
   const url = URL.createObjectURL(blob);
@@ -15,12 +15,13 @@ const safeName = (s) => (s || '원고').replace(/[\\/:*?"<>|]/g, '').trim().slic
 export function exportTxt(name, items, header) {
   const parts = [];
   if (header) parts.push(header);
-  for (const it of items) parts.push(it.heading, stripMarkers(it.text).trim());
+  for (const it of items) parts.push(it.heading, plainText(it.text).trim());
   download(safeName(name) + '.txt', new Blob([parts.join('\n\n\n').replace(/\n{4,}/g, '\n\n\n') + '\n'], { type: 'text/plain;charset=utf-8' }));
 }
 
 export async function exportDocx(name, items, header) {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType, Table, TableRow, TableCell, WidthType, LevelFormat } = await import('docx');
+  let listNo = 0;
   const children = [];
   if (header) {
     children.push(new Paragraph({ heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, children: [new TextRun(header)] }));
@@ -33,7 +34,33 @@ export async function exportDocx(name, items, header) {
       children: [new TextRun(it.heading)],
     }));
     for (const b of blocks(it.text)) {
-      if (b.bubble) {
+      if (b.list) {
+        const items = b.items.filter((t) => t.trim());
+        const inst = ++listNo;
+        for (const t of items) {
+          children.push(new Paragraph({
+            spacing: { after: 80, line: 320 },
+            ...(b.list === 'ordered' ? { numbering: { reference: 'num', level: 0, instance: inst } } : { bullet: { level: 0 } }),
+            children: [new TextRun(t)],
+          }));
+        }
+        children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+      } else if (b.table) {
+        const cols = b.table[0].length;
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: b.table.map((row, ri) => new TableRow({
+            tableHeader: ri === 0,
+            children: row.map((c) => new TableCell({
+              width: { size: Math.floor(100 / cols), type: WidthType.PERCENTAGE },
+              shading: ri === 0 ? { type: ShadingType.CLEAR, color: 'auto', fill: 'F2F2F0' } : undefined,
+              margins: { top: 60, bottom: 60, left: 100, right: 100 },
+              children: [new Paragraph({ children: [new TextRun({ text: c, bold: ri === 0 })] })],
+            })),
+          })),
+        }));
+        children.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+      } else if (b.bubble) {
         const me = b.bubble === 'me';
         children.push(new Paragraph({
           alignment: me ? AlignmentType.RIGHT : AlignmentType.LEFT,
@@ -55,6 +82,7 @@ export async function exportDocx(name, items, header) {
   const doc = new Document({
     creator: '원고 보관함',
     title: name,
+    numbering: { config: [{ reference: 'num', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 480, hanging: 300 } } } }] }] },
     styles: {
       default: { document: { run: { font: { ascii: 'Batang', eastAsia: '바탕', hAnsi: 'Batang' }, size: 22 } } },
     },

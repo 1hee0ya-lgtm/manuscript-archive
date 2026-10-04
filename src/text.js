@@ -19,32 +19,76 @@ export const isSceneBreak = (t) => SCENE.test(t);
 const BUBBLE = /^(<<|>>) ?/;
 export const MARK = { other: '<< ', me: '>> ' };
 
+// 목록·표: 문단 첫 줄에 머리표를 붙여 저장한다
+//   ::목록 / ::번호  → 다음 줄부터 한 줄에 한 항목
+//   ::표            → 다음 줄부터 한 줄에 한 행, 칸은 " | "로 구분, 첫 행은 제목줄
+export const HEAD = { bullet: '::목록', ordered: '::번호', table: '::표' };
+const HEAD_RE = /^::(목록|번호|표)\s*$/;
+const cellClean = (c) => String(c ?? '').replace(/\|/g, '｜').replace(/\s*\n\s*/g, ' ');
+
 // 빈 줄 = 문단, 줄바꿈 = 줄, * * * = 장면 구분 (기존 html과 같은 규칙)
 export function blocks(text) {
   return (text || '').replace(/\r\n?/g, '\n').split(/\n\s*\n/)
     .filter((b) => b.trim())
     .map((b) => {
+      const all = b.split('\n');
+      const h = all[0].match(HEAD_RE);
+      if (h) {
+        const rest = all.slice(1);
+        if (h[1] === '표') {
+          let rows = rest.map((line) => line.split(/ ?\| ?/));
+          const cols = Math.max(2, ...rows.map((r) => r.length));
+          if (!rows.length) rows = [['', '']];
+          rows = rows.map((r) => [...r, ...Array(cols - r.length).fill('')]);
+          return { table: rows, lines: rows.map((r) => r.filter(Boolean).join(' ')) };
+        }
+        return { list: h[1] === '번호' ? 'ordered' : 'bullet', items: rest, lines: rest };
+      }
       if (SCENE.test(b)) return { scene: true, lines: [b] };
       const m = b.match(BUBBLE);
       if (m) return { bubble: m[1] === '>>' ? 'me' : 'other', lines: b.slice(m[0].length).split('\n') };
-      return { lines: b.split('\n') };
+      return { lines: all };
     });
 }
 
+function blockText(b) {
+  if (b.table) return HEAD.table + '\n' + b.table.map((r) => r.map(cellClean).join(' | ')).join('\n');
+  if (b.list) {
+    const items = b.items.map((t) => t.replace(/\s*\n\s*/g, ' ')).filter((t) => t.trim());
+    return items.length ? HEAD[b.list] + '\n' + items.join('\n') : '';
+  }
+  return (b.bubble ? MARK[b.bubble] : '') + b.lines.join('\n');
+}
+
 export function joinBlocks(list) {
-  return list.map((b) => (b.bubble ? MARK[b.bubble] : '') + b.lines.join('\n'))
-    .filter((t) => t.trim()).join('\n\n');
+  return list.map(blockText).filter((t) => t.trim()).join('\n\n');
 }
 
 // 편집기가 저장하는 모양과 똑같이 맞춘 글 (비교용)
 export const normalizeText = (text) => joinBlocks(blocks(text));
 
-// 표시 없이 글만 (글자 수, txt 내보내기용)
+// 표시 없이 글만 (글자 수 세기용)
 export const stripMarkers = (text) => blocks(text).map((b) => b.lines.join('\n')).join('\n\n');
+
+// txt 내보내기용: 목록은 •/번호, 표는 칸을 | 로
+export const plainText = (text) => blocks(text).map((b) => {
+  if (b.table) return b.table.map((r) => r.join(' | ')).join('\n');
+  if (b.list) return b.items.filter((t) => t.trim()).map((t, i) => (b.list === 'ordered' ? `${i + 1}. ` : '• ') + t).join('\n');
+  return b.lines.join('\n');
+}).join('\n\n');
 
 export function renderParagraphs(text) {
   return blocks(text).map((b) => {
     if (b.scene) return '<p class="scene-break">* * *</p>';
+    if (b.list) {
+      const tag = b.list === 'ordered' ? 'ol' : 'ul';
+      return `<${tag}>${b.items.filter((t) => t.trim()).map((t) => `<li><p>${escapeHtml(t)}</p></li>`).join('')}</${tag}>`;
+    }
+    if (b.table) {
+      const [head, ...body] = b.table;
+      return `<div class="table-wrap"><table><thead><tr>${head.map((c) => `<th><p>${escapeHtml(c)}</p></th>`).join('')}</tr></thead>`
+        + `<tbody>${body.map((r) => `<tr>${r.map((c) => `<td><p>${escapeHtml(c)}</p></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
     const inner = b.lines.map(escapeHtml).join('<br>');
     return b.bubble ? `<div class="bubble ${b.bubble}">${inner}</div>` : `<p>${inner}</p>`;
   }).join('');
