@@ -1,4 +1,5 @@
 // 글자 수, 본문 렌더링, 기존 html 해석 등 텍스트 관련 도우미
+import { parseYoutube, serializeYoutube, youtubeLines, renderYoutube } from './youtube.js';
 
 export function countChars(text) {
   const t = stripMarkers(text);
@@ -31,6 +32,8 @@ export function blocks(text) {
   return (text || '').replace(/\r\n?/g, '\n').split(/\n\s*\n/)
     .filter((b) => b.trim())
     .map((b) => {
+      const youtube = parseYoutube(b);
+      if (youtube) return { youtube, lines: youtubeLines(youtube) };
       const all = b.split('\n');
       const h = all[0].match(HEAD_RE);
       if (h) {
@@ -52,6 +55,7 @@ export function blocks(text) {
 }
 
 function blockText(b) {
+  if (b.youtube) return serializeYoutube(b.youtube);
   if (b.table) return HEAD.table + '\n' + b.table.map((r) => r.map(cellClean).join(' | ')).join('\n');
   if (b.list) {
     const items = b.items.map((t) => t.replace(/\s*\n\s*/g, ' ')).filter((t) => t.trim());
@@ -79,6 +83,7 @@ export const plainText = (text) => blocks(text).map((b) => {
 
 export function renderParagraphs(text) {
   return blocks(text).map((b) => {
+    if (b.youtube) return renderYoutube(b.youtube);
     if (b.scene) return '<p class="scene-break">* * *</p>';
     if (b.list) {
       const tag = b.list === 'ordered' ? 'ol' : 'ul';
@@ -98,6 +103,9 @@ export function renderParagraphs(text) {
 function textOf(node) {
   if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
   if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  if (node.matches('section.youtube-screen[data-youtube]')) {
+    try { const d = JSON.parse(node.dataset.youtube); if (d.version === 1) return serializeYoutube(d); } catch { /* 원본 텍스트로 가져오기 */ }
+  }
   if (node.tagName === 'BR') return '\n';
   return Array.from(node.childNodes, textOf).join('');
 }

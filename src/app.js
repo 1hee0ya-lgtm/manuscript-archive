@@ -2,10 +2,11 @@ import Sortable from 'sortablejs';
 import { diffWordsWithSpace } from 'diff';
 import { store } from 'store';
 import {
-  countChars, fmt, escapeHtml as h, renderParagraphs, parseLegacyHtml, relTime, dateTime, normalizeText,
+  countChars, fmt, escapeHtml as h, renderParagraphs, parseLegacyHtml, relTime, dateTime, normalizeText, plainText,
 } from './text.js';
 import { createBodyEditor } from './editor.js';
 import { exportTxt, exportDocx, exportBackup, parseBackup } from './export.js';
+import { YOUTUBE_MARK } from './youtube.js';
 
 // ───────── 기본 상태 ─────────
 const $app = document.getElementById('app');
@@ -536,6 +537,7 @@ function openEditor(wid, cid) {
         <button type="button" class="tool" data-list="bullet" title="글머리표 목록"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="4" r="1.5"/><circle cx="3" cy="8" r="1.5"/><circle cx="3" cy="12" r="1.5"/><rect x="6.5" y="3.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="7.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="11.2" width="8" height="1.6" rx=".8"/></g></svg>목록</button>
         <button type="button" class="tool" data-list="ordered" title="번호 목록"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><text x="0.5" y="6" font-size="5.5" font-family="sans-serif" font-weight="700">1</text><text x="0.5" y="13.5" font-size="5.5" font-family="sans-serif" font-weight="700">2</text><rect x="6.5" y="3.2" width="8" height="1.6" rx=".8"/><rect x="6.5" y="10.7" width="8" height="1.6" rx=".8"/></g></svg>번호</button>
         <button type="button" class="tool" data-table="insert" title="표 넣기"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M1.5 6.2h13M6 2.5v11M10.5 2.5v11"/></g></svg>표</button>
+        <span class="tool-sep"></span><button type="button" class="tool" data-youtube-insert title="유튜브 모바일 화면 넣기"><svg width="18" height="14" viewBox="0 0 24 18" aria-hidden="true"><rect width="24" height="18" rx="5" fill="#f03"/><path d="m10 5 7 4-7 4Z" fill="white"/></svg>유튜브</button>
       </div>
       <div class="ed-tools table-tools" id="tableTools" hidden role="toolbar" aria-label="표 편집">
         <span class="tt-label">표</span>
@@ -554,11 +556,13 @@ function openEditor(wid, cid) {
   const tableTools = $app.querySelector('#tableTools');
   const body = createBodyEditor($app.querySelector('#body'), {
     onChange: onEdit,
+    onMessage: (message) => toast(message, true),
     onSelection: () => {
       const k = body.currentKind();
       tools.querySelectorAll('[data-bubble]').forEach((b) => b.classList.toggle('on', b.dataset.bubble === k));
       tools.querySelectorAll('[data-list]').forEach((b) => b.classList.toggle('on', b.dataset.list === k));
       tools.querySelector('[data-table]').classList.toggle('on', k === 'table');
+      tools.querySelector('[data-youtube-insert]').classList.toggle('on', k === 'youtube');
       tableTools.hidden = k !== 'table' || !!E.reading;
     },
     placeholder: '본문을 입력하세요. Enter로 문단을 나누고, 장면 구분은 * * * 로 입력해요.',
@@ -577,6 +581,7 @@ function openEditor(wid, cid) {
     if (b) return body.toggleBubble(b.dataset.bubble);
     const l = e.target.closest('[data-list]');
     if (l) return body.toggleList(l.dataset.list);
+    if (e.target.closest('[data-youtube-insert]')) return body.insertYoutube();
     if (e.target.closest('[data-table]')) {
       if (body.currentKind() === 'table') return toast('표 안에는 표를 넣을 수 없어요.');
       const size = await modal({
@@ -738,6 +743,7 @@ async function closeEditor() {
     store.addVersion(E.wid, E.cid, { ...E.base, reason: 'leave', device: DEVICE });
   }
   E.unsub?.();
+  E.body.destroy();
   S.editor = null;
 }
 
@@ -867,8 +873,10 @@ async function renderHistory(wid, cid) {
 
 async function showVersion(wid, cid, v) {
   const cur = S.chapters.find((x) => x.id === cid) || { title: '', text: '' };
-  const parts = diffWordsWithSpace(v.text || '', cur.text || '');
+  const hasYoutube = (v.text || '').includes(YOUTUBE_MARK) || (cur.text || '').includes(YOUTUBE_MARK);
+  const parts = diffWordsWithSpace(hasYoutube ? plainText(v.text || '') : v.text || '', hasYoutube ? plainText(cur.text || '') : cur.text || '');
   const changed = parts.some((p) => p.added || p.removed);
+  const visualOnly = hasYoutube && !changed && v.text !== cur.text;
   const diffHtml = parts.map((p) => {
     let v = p.value;
     if (!p.added && !p.removed && v.length > 360) v = v.slice(0, 120) + '\u0000' + v.slice(-120);
@@ -880,7 +888,7 @@ async function showVersion(wid, cid, v) {
     title: dateTime(v.createdAt),
     body: `<p class="muted small">${REASON[v.reason] || v.reason} · ${fmt(n.noSpace)}자 · 제목: ${h(v.title)}</p>
       <div class="tabs"><button type="button" class="tab on" data-t="diff">지금과 비교</button><button type="button" class="tab" data-t="full">이 버전 전체</button></div>
-      <div class="diff" data-p="diff">${changed ? diffHtml : '<p class="muted">지금 원고와 내용이 같아요.</p>'}</div>
+      <div class="diff" data-p="diff">${changed ? diffHtml : visualOnly ? '<p class="muted">문구는 같고 화면 이미지나 표시 설정이 달라요. ‘이 버전 전체’에서 확인해 주세요.</p>' : '<p class="muted">지금 원고와 내용이 같아요.</p>'}</div>
       <div class="reader" data-p="full" hidden>${renderParagraphs(v.text)}</div>
       <p class="muted small legend"><del>빨간 줄</del> 이 버전에만 있음 · <ins>초록</ins> 지금 원고에만 있음</p>`,
     buttons: [{ label: '닫기', value: null }, { label: '이 버전으로 복원', primary: true, value: 'restore' }],

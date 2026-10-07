@@ -20,7 +20,7 @@ export function exportTxt(name, items, header) {
 }
 
 export async function exportDocx(name, items, header) {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType, Table, TableRow, TableCell, WidthType, LevelFormat } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, ShadingType, Table, TableRow, TableCell, WidthType, LevelFormat } = await import('docx');
   let listNo = 0;
   const children = [];
   if (header) {
@@ -34,7 +34,29 @@ export async function exportDocx(name, items, header) {
       children: [new TextRun(it.heading)],
     }));
     for (const b of blocks(it.text)) {
-      if (b.list) {
+      if (b.youtube) {
+        const d = b.youtube;
+        const image = (src, width, height) => {
+          const m = /^data:image\/(png|jpeg);base64,(.+)$/.exec(src || '');
+          if (!m) return null;
+          return new ImageRun({ type: m[1] === 'jpeg' ? 'jpg' : 'png', data: Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0)), transformation: { width, height } });
+        };
+        const frame = image(d.image, d.ratio === 'portrait' ? 202 : 360, d.ratio === 'portrait' ? 360 : 202);
+        if (frame) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [frame] }));
+        if (d.title) children.push(new Paragraph({ children: [new TextRun({ text: d.title, bold: true })], spacing: { after: 80 } }));
+        const videoMeta = [d.channel, d.subscribers, d.views, d.published, d.likes && '좋아요 ' + d.likes].filter(Boolean).join(' · ');
+        if (videoMeta) children.push(new Paragraph({ children: [new TextRun({ text: videoMeta, size: 18, color: '606060' })], spacing: { after: 160 } }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `댓글${d.commentCount ? ' ' + d.commentCount : ''} · ${d.sort === 'latest' ? '최신순' : '인기순'}`, bold: true })], spacing: { after: 120 } }));
+        const addComment = (c, reply = false) => {
+          const av = image(c.avatar, 20, 20);
+          children.push(new Paragraph({ indent: reply ? { left: 480 } : undefined, spacing: { after: 60 }, children: [...(av ? [av, new TextRun(' ')] : []), new TextRun({ text: [c.author, c.time].filter(Boolean).join(' · '), size: 18, color: '606060' })] }));
+          children.push(new Paragraph({ indent: reply ? { left: 480 } : undefined, spacing: { after: 60 }, children: c.text.split('\n').map((t, i) => new TextRun({ text: t, ...(i ? { break: 1 } : {}) })) }));
+          const counts = [c.likes && '좋아요 ' + c.likes, !reply && (c.replyCount || c.replies.length) && `답글 ${c.replyCount || c.replies.length}개`].filter(Boolean).join(' · ');
+          if (counts) children.push(new Paragraph({ indent: reply ? { left: 480 } : undefined, spacing: { after: 120 }, children: [new TextRun({ text: counts, size: 18, color: '606060' })] }));
+        };
+        for (const c of d.comments) { addComment(c); for (const r of c.replies) addComment(r, true); }
+        children.push(new Paragraph({ spacing: { after: 200 }, children: [] }));
+      } else if (b.list) {
         const items = b.items.filter((t) => t.trim());
         const inst = ++listNo;
         for (const t of items) {

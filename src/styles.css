@@ -325,3 +325,131 @@ del { background: #fbe3de; color: #a3321f; border-radius: 3px; }
   .l-short { display: inline; }
   .ed-tools .tool { padding: 0 9px; gap: 5px; }
 }
+
+/* 원고에 넣는 유튜브 모바일 화면: 기기의 다크 모드와 무관하게 흰색 */
+.youtube-screen {
+  width: 100%; max-width: 420px; margin: 0 auto 20px; overflow: hidden;
+  border: 1px solid #e8e8e8; border-radius: 18px; background: #fff; color: #0f0f0f; color-scheme: light;
+  font: 14px/1.5 var(--sans); letter-spacing: -.015em; white-space: normal; text-align: left;
+  word-break: normal; overflow-wrap: anywhere;
+}
+.youtube-screen *, .yt-edit-modal * { box-sizing: border-box; }
+.youtube-screen svg { width: 22px; height: 22px; flex-shrink: 0; vertical-align: middle; }
+.yt-video { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #111; overflow: hidden; }
+.yt-video-portrait { aspect-ratio: 9 / 16; }
+.yt-frame { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.yt-video-contain .yt-frame { object-fit: contain; object-position: center; }
+.yt-no-frame { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; color: #737373; background: #f2f2f2; font-size: 12px; }
+.yt-no-frame svg { width: 34px; height: 34px; stroke-width: 1.2; }
+.yt-progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: rgba(210, 210, 210, .65); }
+.yt-progress > span { display: block; height: 100%; background: #f03; }
+.yt-playback { position: absolute; left: 0; right: 0; bottom: 3px; padding: 18px 12px 8px; display: flex; align-items: center; gap: 10px; color: #fff; background: linear-gradient(transparent, #0009); font-size: 11px; }
+.yt-playback svg { width: 18px; height: 18px; }
+.yt-fullscreen { margin-left: auto; font-size: 22px; line-height: 1; }
+.yt-comments-sheet { padding-top: 10px; border-radius: 20px 20px 0 0; background: #fff; }
+.yt-sheet-handle { width: 42px; height: 4px; border-radius: 99px; background: #d7d7d7; margin: 0 auto 14px; }
+.yt-sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 16px 16px; }
+.yt-sheet-header > strong { font-size: 21px; font-weight: 700; }
+.yt-sheet-header > span { display: flex; align-items: center; gap: 24px; }
+.yt-sheet-header svg { width: 24px; height: 24px; }
+.yt-sort { display: flex; gap: 8px; padding: 0 16px 10px; border-bottom: 1px solid #e5e5e5; }
+.yt-sort > span { display: inline-flex; align-items: center; justify-content: center; padding: 7px 13px; border-radius: 9px; background: #f2f2f2; color: #0f0f0f; font-size: 13px; font-weight: 600; }
+.yt-sort > .yt-active { background: #0f0f0f; color: #fff; }
+.yt-comments { padding: 16px 13px 8px; }
+.yt-comment { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; margin: 0 0 26px; }
+.yt-avatar { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex-shrink: 0; justify-content: center; align-items: center; color: #fff; font-size: 15px; font-weight: 600; line-height: 1; }
+.yt-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.yt-color-0 { background: #957a9a; } .yt-color-1 { background: #80b8d5; } .yt-color-2 { background: #668877; } .yt-color-3 { background: #c99071; } .yt-color-4 { background: #7a87bb; }
+.yt-comment-meta { display: flex; gap: 8px; align-items: flex-start; color: #606060; font-size: 11.5px; }
+.yt-comment-body { position: relative; }
+.yt-threaded > .yt-comment-body::before { content: ''; position: absolute; left: -26px; top: 35px; bottom: 10px; width: 20px; border-left: 1.5px solid #ddd; border-bottom: 1.5px solid #ddd; border-bottom-left-radius: 22px; pointer-events: none; }
+.yt-comment-meta > span:first-child { min-width: 0; flex: 1; padding-top: 1px; }
+.yt-more svg { width: 20px; height: 20px; }
+.yt-comment-text { margin-top: 4px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+.yt-comment-actions { display: flex; align-items: center; gap: 24px; margin-top: 14px; min-height: 26px; font-size: 12px; }
+.yt-comment-actions > span { display: inline-flex; align-items: center; gap: 7px; }
+.yt-comment-actions svg { width: 20px; height: 20px; }
+.yt-replies { margin-top: 18px; color: #065fd4; font-size: 13px; font-weight: 600; }
+.yt-replies summary, .yt-replies-count { display: flex; align-items: center; gap: 5px; list-style: none; }
+.yt-replies summary { cursor: pointer; padding: 5px 0; }
+.yt-replies summary::-webkit-details-marker { display: none; }
+.yt-replies > summary svg, .yt-replies-count svg { width: 18px; height: 18px; }
+.yt-replies[open] > summary svg { transform: rotate(90deg); }
+.yt-replies > div { margin-top: 12px; }
+.yt-reply { grid-template-columns: 24px minmax(0, 1fr); gap: 8px; margin-bottom: 16px; color: #0f0f0f; font-weight: 400; }
+.yt-reply .yt-avatar { width: 24px; height: 24px; font-size: 12px; }
+.yt-reply .yt-comment-text { font-size: 13px; }
+.yt-no-comments { padding: 20px 0 30px; text-align: center; font-size: 13px; color: #606060; }
+.yt-watch-info { padding: 13px 14px 15px; }
+.yt-title { font-size: 16px; font-weight: 650; line-height: 1.4; white-space: pre-wrap; }
+.yt-video-meta { margin-top: 6px; color: #606060; font-size: 11.5px; }
+.yt-channel { display: flex; gap: 9px; align-items: center; margin-top: 16px; }
+.yt-channel > div { display: flex; flex-direction: column; min-width: 0; }
+.yt-channel strong { font-size: 13px; font-weight: 600; }
+.yt-channel > div > span { font-size: 10px; color: #606060; }
+.yt-subscribe { background: #0f0f0f; color: #fff; border-radius: 99px; padding: 7px 12px; margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.yt-watch-actions { display: flex; gap: 10px; margin-top: 14px; font-size: 12px; }
+.yt-watch-actions > span { display: inline-flex; gap: 8px; align-items: center; padding: 7px 13px; border-radius: 99px; background: #f2f2f2; }
+.yt-watch-actions svg { width: 19px; height: 19px; }
+.yt-watch-actions i { display: inline-block; height: 18px; width: 1px; background: #d6d6d6; margin: 0 2px; }
+.yt-comments-inline { padding-top: 14px; border-top: 1px solid #e5e5e5; border-radius: 0; }
+.yt-comments-inline .yt-sheet-header strong { font-size: 17px; }
+.yt-node { margin: 0 0 1.5em; border-radius: 18px; padding: 0 0 3px; white-space: normal; }
+.yt-node .youtube-screen { margin-bottom: 8px; }
+.yt-node-actions { display: flex; justify-content: center; gap: 6px; font: 13px/1.4 var(--sans); }
+.yt-node.ProseMirror-selectednode .youtube-screen { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pm[contenteditable=false] .yt-node-actions { display: none; }
+
+/* 화면 편집: 모바일은 입력란 다음에 미리보기, PC는 두 열 */
+.yt-edit-wrap { align-items: center; padding: 16px; }
+.yt-edit-modal { max-width: 960px; max-height: 94vh; max-height: 94dvh; padding: 20px; border-radius: 18px; color: #26272b; color-scheme: light; }
+.yt-editor-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.yt-editor-header h2 { margin: 0; }
+.yt-editor-header > button { flex-shrink: 0; }
+.yt-editor-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, 1fr); gap: 24px; align-items: start; margin-top: 16px; }
+.yt-fields { min-width: 0; }
+.yt-form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.yt-edit-modal label { margin-top: 12px; font-size: 12.5px; }
+.yt-edit-modal input[type=text], .yt-edit-modal input[type=number] { height: 40px; font-size: 16px; }
+.yt-edit-modal select, .yt-edit-modal textarea { width: 100%; min-width: 0; display: block; margin-top: 6px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e6e6e3; background: #f8f8f6; color: #26272b; font: 16px/1.5 var(--sans); }
+.yt-edit-modal textarea { resize: vertical; min-height: 84px; }
+.yt-edit-modal select { min-height: 40px; font-size: 14px; }
+.yt-edit-modal select:focus, .yt-edit-modal textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: #fff; }
+.yt-image-field { margin-top: 14px; font-size: 12.5px; font-weight: 500; }
+.yt-image-choice { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.yt-image-thumb { width: 48px; height: 38px; display: inline-flex; align-items: center; justify-content: center; background: #f1f1ef; border-radius: 6px; overflow: hidden; color: #999; }
+.yt-image-thumb > img { width: 100%; height: 100%; object-fit: cover; }
+.yt-image-thumb > svg { width: 22px; height: 22px; }
+.yt-edit-modal .yt-file-label { margin: 0; color: var(--ink); font-size: 13px; cursor: pointer; }
+.yt-file-label input[type=file] { width: 1px; height: 1px; position: absolute; opacity: 0; }
+.yt-file-label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.yt-options, .yt-reply-form { border: 1px solid #e6e6e3; border-radius: 10px; padding: 12px; margin-top: 16px; }
+.yt-options summary, .yt-reply-form summary { font-size: 13px; font-weight: 500; cursor: pointer; }
+.yt-edit-modal .yt-checkbox { display: flex; align-items: center; gap: 8px; }
+.yt-checkbox input { width: 16px; height: 16px; accent-color: var(--accent); }
+.yt-form-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13px; }
+.yt-form-row > div { display: flex; gap: 2px; flex-shrink: 0; }
+.yt-comments-label { margin-top: 24px; }
+.yt-comment-form { border: 1px solid #e6e6e3; border-radius: 12px; padding: 12px; margin-top: 12px; background: #fff; }
+.yt-comment-form .yt-comment-form { padding: 10px; }
+.yt-comment-form .yt-form-grid { gap: 8px; }
+.yt-reply-form { padding: 10px; background: #fafafa; }
+.yt-reply-form > button { margin-top: 12px; }
+.yt-live-preview { min-width: 0; position: sticky; top: 12px; }
+.yt-preview-label { display: block; color: #777; font-size: 12px; margin: 0 0 10px; }
+.yt-preview-content { padding: 14px 10px; border-radius: 14px; background: #f4f4f2; }
+.yt-preview-content .youtube-screen { margin-bottom: 0; }
+.yt-form-error { margin: 18px 0 0 !important; padding: 10px 12px; border-radius: 8px; background: #fff0ed; color: var(--warn) !important; font-size: 13px; }
+.yt-editor-footer { position: sticky; bottom: -20px; padding: 14px 0 4px; margin-top: 18px; background: #fff; border-top: 1px solid #eee; z-index: 2; }
+@media (max-width: 640px) {
+  .yt-edit-wrap { padding: 0; align-items: flex-end; }
+  .yt-edit-modal { padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; max-height: 94vh; max-height: 94dvh; }
+  .yt-editor-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .yt-live-preview { position: static; }
+  .yt-editor-footer { bottom: calc(-16px - env(safe-area-inset-bottom)); padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .yt-node-actions > button { min-height: 38px; }
+}
+@media (max-width: 360px) {
+  .yt-comment-form .yt-form-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .yt-form-row .small { padding: 0 8px; }
+}
